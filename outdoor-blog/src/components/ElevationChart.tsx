@@ -9,14 +9,16 @@ interface ChartProps {
 }
 
 export default function ElevationChart({ trailPoints, onHoverPoint }: ChartProps) {
+  if (trailPoints.length === 0) {
+    return <div className="chart-loading">Waiting for GPX elevation data…</div>;
+  }
+
   return (
-    <div className="w-full h-[220px] bg-slate-900/90 p-4 rounded-xl shadow-lg border border-slate-800">
-      <p className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-2">
-        Elevation Profile (Meters vs. Kilometers)
-      </p>
-      <ResponsiveContainer width="100%" height="80%">
+    <div className="elevation-chart">
+      <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={trailPoints}
+          margin={{ top: 10, right: 5, bottom: 0, left: 0 }}
           onMouseMove={(state) => {
             if (state && typeof state.activeTooltipIndex === "number") {
               onHoverPoint(state.activeTooltipIndex);
@@ -26,27 +28,57 @@ export default function ElevationChart({ trailPoints, onHoverPoint }: ChartProps
         >
           <defs>
             <linearGradient id="elevationGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+              <stop offset="4%" stopColor="#8be6df" stopOpacity={0.34} />
+              <stop offset="100%" stopColor="#8be6df" stopOpacity={0.01} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="distanceKm" unit="km" stroke="#64748b" tick={{ fontSize: 11 }} />
-          <YAxis domain={['dataMin - 100', 'dataMax + 100']} stroke="#64748b" tick={{ fontSize: 11 }} />
+          <XAxis
+            dataKey="distanceKm"
+            type="number"
+            scale="linear"
+            domain={["dataMin", "dataMax"]}
+            tickCount={6}
+            tickFormatter={(value: number) => `${Math.round(value)} km`}
+            stroke="#586b78"
+            tick={{ fontSize: 10, fill: "#82919b" }}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={38}
+          />
+          <YAxis
+            domain={["dataMin - 80", "dataMax + 80"]}
+            tickFormatter={(value: number) => `${(value).toFixed(0)}`}
+            stroke="#586b78"
+            tick={{ fontSize: 10, fill: "#82919b" }}
+            tickLine={false}
+            axisLine={false}
+            width={38}
+          />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const data = payload[0].payload as TrailPoint;
                 return (
-                  <div className="bg-slate-950 border border-slate-700 p-2 rounded text-xs text-slate-100">
-                    <p>Distance: <span className="text-sky-400 font-bold">{data.distanceKm} km</span></p>
-                    <p>Elevation: <span className="text-emerald-400 font-bold">{data.elevation} m</span></p>
+                  <div className="chart-tooltip">
+                    <span>{data.distanceKm.toFixed(1)} KM</span>
+                    <strong>{Math.round(data.elevation).toLocaleString()} M</strong>
                   </div>
                 );
               }
               return null;
             }}
+            cursor={{ stroke: "#d5f4ef", strokeDasharray: "3 4", strokeWidth: 1 }}
           />
-          <Area type="monotone" dataKey="elevation" stroke="#38bdf8" fillOpacity={1} fill="url(#elevationGrad)" />
+          <Area
+            type="monotone"
+            dataKey="elevation"
+            stroke="#8be6df"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#elevationGrad)"
+            activeDot={{ r: 4, fill: "#d8fffb", stroke: "#375c61", strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
