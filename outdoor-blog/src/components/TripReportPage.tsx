@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -51,6 +52,7 @@ export default function TripReportPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [trackError, setTrackError] = useState<string | null>(null);
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +103,14 @@ export default function TripReportPage() {
 
   const activePhoto = tripPhotos[activePhotoIndex];
 
+  useEffect(() => {
+    thumbnailRefs.current[activePhotoIndex]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [activePhotoIndex]);
+
   function movePhoto(direction: -1 | 1) {
     setActivePhotoIndex((index) => (index + direction + tripPhotos.length) % tripPhotos.length);
   }
@@ -124,10 +134,6 @@ export default function TripReportPage() {
             <br />
             <span>Peak</span>
           </h1>
-
-          <p className="report-deck">
-            A full day exploring Tricouni Peak and the many wonderful lakes in the area. 
-          </p>
 
           <div className="report-meta">
             <span>
@@ -345,13 +351,7 @@ Just below the summit is one last tricky scramble. There’s either a dusty, wor
           </div>
         ) : (
           <div className="gallery-view">
-            <div
-              className="gallery-image"
-              role="img"
-              aria-label={activePhoto.caption}
-              style={{ backgroundImage: `url("${activePhoto.imageUrl}")` }}
-            >
-              <div className="gallery-image-shade" />
+            <div className="gallery-toolbar">
               <div className="photo-counter">
                 <Camera size={14} />
                 <span>{String(activePhotoIndex + 1).padStart(2, "0")}</span>
@@ -359,21 +359,40 @@ Just below the summit is one last tricky scramble. There’s either a dusty, wor
                 <span>{String(tripPhotos.length).padStart(2, "0")}</span>
               </div>
               <div className="gallery-controls">
-                <button type="button" aria-label="Previous photo" onClick={() => movePhoto(-1)}>
+                <button
+                  type="button"
+                  aria-label="Previous photo"
+                  onClick={() => movePhoto(-1)}
+                >
                   <ArrowLeft size={18} />
                 </button>
-                <button type="button" aria-label="Next photo" onClick={() => movePhoto(1)}>
+                <button
+                  type="button"
+                  aria-label="Next photo"
+                  onClick={() => movePhoto(1)}
+                >
                   <ArrowRight size={18} />
                 </button>
               </div>
-              <div className="gallery-caption">
-                {activePhoto.distanceKm !== null && (
-                  <span className="photo-location">
-                    <MapPin size={13} /> {activePhoto.distanceKm.toFixed(1)} KM ON ROUTE
-                  </span>
-                )}
-                <h2>{activePhoto.caption}</h2>
-              </div>
+            </div>
+            <div className="gallery-image">
+              <Image
+                key={activePhoto.id}
+                className="gallery-photo"
+                src={activePhoto.imageUrl}
+                alt={activePhoto.caption}
+                fill
+                sizes="(max-width: 900px) 100vw, 60vw"
+                priority={activePhotoIndex === 0}
+              />
+            </div>
+            <div className="gallery-caption">
+              {activePhoto.distanceKm !== null && (
+                <span className="photo-location">
+                  <MapPin size={13} /> {activePhoto.distanceKm.toFixed(1)} KM ON ROUTE
+                </span>
+              )}
+              <h2>{activePhoto.caption}</h2>
             </div>
             <div className="gallery-details">
               {activePhoto.lat !== null && activePhoto.lng !== null && (
@@ -409,26 +428,25 @@ Just below the summit is one last tricky scramble. There’s either a dusty, wor
                 </span>
               )}
             </div>
-            <div className="thumbnail-rail" aria-label="Choose a photo">
+            <div className="thumbnail-rail" role="list" aria-label="Choose a photo">
               {tripPhotos.map((photo, index) => (
                 <button
                   className={index === activePhotoIndex ? "thumbnail active" : "thumbnail"}
                   key={photo.id}
                   type="button"
+                  role="listitem"
                   aria-label={`Show photo: ${photo.caption}`}
                   aria-current={index === activePhotoIndex}
                   onClick={() => setActivePhotoIndex(index)}
                   style={{ backgroundImage: `url("${photo.imageUrl}")` }}
+                  ref={(element) => {
+                    thumbnailRefs.current[index] = element;
+                  }}
                 >
                   <span>{String(index + 1).padStart(2, "0")}</span>
                 </button>
               ))}
-              <div className="thumbnail-note">
-                <span>TRICOUNI PEAK</span>
-                <span>LOCATION WHEN AVAILABLE</span>
-              </div>
             </div>
-            <p className="gallery-hint"><Camera size={13} /> Select a frame to explore the day</p>
           </div>
         )}
       </aside>
